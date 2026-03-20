@@ -956,7 +956,6 @@ def load_ps(r_pool: RunspacePool, local_path: str):
     try:
         try:
             script = _read_text_auto_encoding(local_path)
-            print(script)
         except Exception as e:
             print(RED + f"[-] Error reading ps script file: {e}" + RESET)
             log.error(f"Error reading ps script file: {e}")
