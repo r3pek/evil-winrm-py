@@ -28,7 +28,7 @@ setup(
     install_requires=[
         "pypsrp==0.8.1",
         "prompt_toolkit==3.0.52",
-        "tqdm==4.67.1",
+        "tqdm==4.67.3",
     ],
     extras_require={
         "kerberos": [
