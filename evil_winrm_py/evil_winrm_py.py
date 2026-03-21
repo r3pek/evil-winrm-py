@@ -964,7 +964,7 @@ def load_ps(r_pool: RunspacePool, local_path: str):
         content = re.sub(r"<#.*?#>", "", script, flags=re.DOTALL)
         # Find all function names in the script
         pattern = r"function\s+([a-zA-Z0-9_-]+)\s*(?={|$)"
-        function_names = re.findall(pattern, content, re.MULTILINE)
+        function_names = re.findall(pattern, content, re.MULTILINE | re.IGNORECASE)
 
         ps.add_script(f". {{ {script} }}")  # Dot sourcing the script
         ps.begin_invoke()
