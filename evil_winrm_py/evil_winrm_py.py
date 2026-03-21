@@ -26,8 +26,10 @@ from pathlib import Path
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
+from prompt_toolkit.filters import has_completions
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.shortcuts import clear
 from pypsrp.complex_objects import PSInvocationState
 from pypsrp.exceptions import AuthenticationError, WinRMTransportError, WSManFaultError
@@ -1166,6 +1168,16 @@ def interactive_shell(r_pool: RunspacePool) -> None:
     # Set up command completer
     completer = CommandPathCompleter(r_pool)
 
+    # Set up key bindings
+    kb = KeyBindings()
+
+    @kb.add("enter", filter=has_completions)
+    def _(event):
+        """Accept the highlighted completion without executing the command."""
+        event.current_buffer.apply_completion(
+            event.current_buffer.complete_state.current_completion
+        )
+
     while True:
         try:
             try:
@@ -1176,6 +1188,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                 prompt_text,
                 completer=completer,
                 complete_while_typing=False,
+                key_bindings=kb,
             )
 
             if not command:
