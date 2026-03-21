@@ -1175,7 +1175,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
     def _(event):
         """Accept the highlighted completion without executing the command."""
         event.current_buffer.apply_completion(
-            event.current_buffer.complete_state.current_completion
+            event.current_buffer.complete_state.current_completion or Completion("", 0)
         )
 
     while True:
