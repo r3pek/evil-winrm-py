@@ -1212,7 +1212,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             elif command_lower == "services":
                 log.info("Displaying services.")
                 get_services_command = (
-                    "Get-ItemProperty 'Registry::HKLM\System\CurrentControlSet\Services\*' -ErrorAction "
+                    "Get-ItemProperty 'Registry::HKLM\\System\\CurrentControlSet\\Services\\*' -ErrorAction "
                     "SilentlyContinue | Where-Object { $_.ImagePath -and ($_.ImagePath -notmatch 'system') } "
                     "| Select-Object @{n='Service';e={$_.PSChildName}}, @{n='Path';e={$_.ImagePath}}"
                 )
