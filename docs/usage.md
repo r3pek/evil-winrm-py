@@ -179,6 +179,7 @@ Inside the interactive shell, you can use the following commands:
 
 ```bash
 Menu:
+[+] services                                                - Show the running services (except system services)
 [+] upload <local_path> <remote_path>                       - Upload a file
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
@@ -189,6 +190,14 @@ Menu:
 [+] clear, cls                                              - Clear the screen
 [+] exit                                                    - Exit the shell
 Note: Use absolute paths for upload/download for reliability.
+```
+
+### Show Running Services
+
+You can list the running services (except system services) on the remote host using the `services` command. This will display a list of services that are currently running, which can be useful for post-exploitation tasks.
+
+```bash
+evil-winrm-py PS C:\Users\Administrator\Documents> services
 ```
 
 ### File Transfer

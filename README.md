@@ -36,6 +36,7 @@ I also wanted to learn more about winrm and its internals, so this project will 
 - Run local PowerShell scripts on the remote host. 🆕
 - Load local DLLs (in-memory) as PowerShell modules on the remote host. 🆕
 - Upload and execute local EXEs (in-memory) on the remote host. 🆕
+- List the running services (except system services) on the remote host. 🆕
 - Enable logging and debugging for better traceability.
 - Navigate command history using `up`/`down` arrow keys.
 - Display colorized output for improved readability.
@@ -152,6 +153,7 @@ evil-winrm-py -i 192.168.1.100 -u Administrator -p P@ssw0rd --ssl
 
 ```bash
 Menu:
+[+] services                                                - Show the running services (except system services)
 [+] upload <local_path> <remote_path>                       - Upload a file
 [+] download <remote_path> <local_path>                     - Download a file
 [+] loadps <local_path>.ps1                                 - Load PowerShell functions from a local script
