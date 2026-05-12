@@ -149,24 +149,29 @@ class DelayedKeyboardInterrupt:
             self.old_handler(*self.signal_received)
 
 
-def run_ps_cmd(r_pool: RunspacePool, command: str) -> tuple[str, list, bool]:
+def run_ps_cmd(r_pool: RunspacePool, command: str, jea_mode: bool = False) -> tuple[str, list, bool]:
     """Runs a PowerShell command and returns the output, streams, and error status."""
     log.info("Executing command: {}".format(command))
     ps = PowerShell(r_pool)
-    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-    ps.add_cmdlet("Out-String").add_parameter("Stream")
+    if jea_mode:
+        # JEA sessions don't expose Invoke-Expression; use add_script() directly
+        ps.add_script(command)
+    else:
+        ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+        ps.add_cmdlet("Out-String").add_parameter("Stream")
     ps.invoke()
     return "\n".join(ps.output), ps.streams, ps.had_errors
 
 
-def get_prompt(r_pool: RunspacePool) -> str:
+def get_prompt(r_pool: RunspacePool, configuration_name: str = None) -> str:
     """Returns the prompt string for the interactive shell."""
     output, streams, had_errors = run_ps_cmd(
-        r_pool, "$pwd.Path"
+        r_pool, "$pwd.Path", jea_mode=configuration_name is not None
     )  # Get current working directory
+    jea_tag = f" {MAGENTA}[JEA:{configuration_name}]{RESET}" if configuration_name else ""
     if not had_errors:
-        return f"{RED}evil-winrm-py{RESET} {YELLOW}{BOLD}PS{RESET} {output}> "
-    return "PS ?> "  # Fallback prompt
+        return f"{RED}evil-winrm-py{RESET}{jea_tag} {YELLOW}{BOLD}PS{RESET} {output}> "
+    return f"JEA:{configuration_name}> " if configuration_name else "PS ?> "  # Fallback prompt
 
 
 def show_menu() -> None:
@@ -1155,7 +1160,7 @@ def run_exe(r_pool: RunspacePool, local_path: str, args: str = "") -> None:
             ps.stop()
 
 
-def interactive_shell(r_pool: RunspacePool) -> None:
+def interactive_shell(r_pool: RunspacePool, configuration_name: str = None) -> None:
     """Runs the interactive pseudo-shell."""
     log.info("Starting interactive PowerShell session...")
 
@@ -1181,7 +1186,7 @@ def interactive_shell(r_pool: RunspacePool) -> None:
     while True:
         try:
             try:
-                prompt_text = ANSI(get_prompt(r_pool))
+                prompt_text = ANSI(get_prompt(r_pool, configuration_name))
             except (KeyboardInterrupt, EOFError):
                 return
             command = prompt_session.prompt(
@@ -1388,8 +1393,12 @@ def interactive_shell(r_pool: RunspacePool) -> None:
             else:
                 try:
                     ps = PowerShell(r_pool)
-                    ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
-                    ps.add_cmdlet("Out-String").add_parameter("Stream")
+                    if configuration_name:
+                        # JEA: Invoke-Expression not available, use add_script() directly
+                        ps.add_script(command)
+                    else:
+                        ps.add_cmdlet("Invoke-Expression").add_parameter("Command", command)
+                        ps.add_cmdlet("Out-String").add_parameter("Stream")
                     ps.begin_invoke()
                     log.info("Executing command: {}".format(command))
 
@@ -1399,10 +1408,10 @@ def interactive_shell(r_pool: RunspacePool) -> None:
                             ps.poll_invoke()
                         output = ps.output
                         for line in output[cursor:]:
-                            print(line)
+                            print(str(line))
                         cursor = len(output)
                     log.info("Command execution completed.")
-                    log.info("Output: {}".format("\n".join(output)))
+                    log.info("Output: {}".format("\n".join(str(l) for l in output)))
 
                     if ps.streams.error:
                         for error in ps.streams.error:
@@ -1482,6 +1491,12 @@ def main():
         "--no-pass", action="store_true", help="do not prompt for password"
     )
     parser.add_argument("--ssl", action="store_true", help="use ssl")
+    parser.add_argument(
+        "-c",
+        "--configuration-name",
+        default=None,
+        help="JEA configuration name (PSSessionConfiguration endpoint)",
+    )
     parser.add_argument("--log", action="store_true", help="log session to file")
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     parser.add_argument("--no-colors", action="store_true", help="disable colors")
@@ -1640,8 +1655,11 @@ def main():
             certificate_pem=args.cert_pem,
             user_agent=args.ua,
         ) as wsman:
-            with RunspacePool(wsman) as r_pool:
-                interactive_shell(r_pool)
+            runspace_kwargs = {}
+            if args.configuration_name:
+                runspace_kwargs["configuration_name"] = args.configuration_name
+            with RunspacePool(wsman, **runspace_kwargs) as r_pool:
+                interactive_shell(r_pool, args.configuration_name)
     except (KeyboardInterrupt, EOFError):
         sys.exit(0)
     except WinRMTransportError as wte:
